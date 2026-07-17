@@ -5,54 +5,125 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>VibeDroid Splash</title>
     <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
         body {
-            margin: 0;
-            padding: 0;
-            background-color: #000;
+            background: #000;
             color: #fff;
             display: flex;
+            flex-direction: column;
             justify-content: center;
             align-items: center;
             height: 100vh;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             overflow: hidden;
-            flex-direction: column;
-            text-align: center;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        /* Animated gradient orb */
+        .orb {
+            width: 90px;
+            height: 90px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #00f2fe, #4facfe, #a18cd1);
+            background-size: 200% 200%;
+            animation: orbPulse 2.4s ease-in-out infinite, orbSpin 6s linear infinite;
+            box-shadow: 0 0 40px rgba(0, 242, 254, 0.5);
+            margin-bottom: 24px;
+        }
+
+        @keyframes orbPulse {
+            0%, 100% { transform: scale(1);   box-shadow: 0 0 40px rgba(0,242,254,0.5); }
+            50%       { transform: scale(1.1); box-shadow: 0 0 60px rgba(0,242,254,0.8); }
+        }
+
+        @keyframes orbSpin {
+            from { filter: hue-rotate(0deg); }
+            to   { filter: hue-rotate(360deg); }
         }
 
         h1 {
-            font-size: 3rem;
-            margin: 0;
+            font-size: 2.4rem;
+            font-weight: 700;
+            letter-spacing: -0.5px;
             background: linear-gradient(90deg, #00f2fe, #4facfe);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
-            font-weight: 900;
+            margin-bottom: 6px;
         }
 
-        p {
-            font-size: 1.2rem;
-            color: #888;
-            margin-top: 10px;
-        }
-        
-        .loader {
-            width: 50px;
-            height: 50px;
-            border: 4px solid rgba(255,255,255,0.1);
-            border-top-color: #00f2fe;
-            border-radius: 50%;
-            animation: spin 1s infinite linear;
-            margin-top: 30px;
+        .tagline {
+            font-size: 0.85rem;
+            color: rgba(255,255,255,0.4);
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            margin-bottom: 40px;
         }
 
-        @keyframes spin {
-            to { transform: rotate(360deg); }
+        /* Progress bar */
+        .progress-wrap {
+            width: 160px;
+            height: 3px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 99px;
+            overflow: hidden;
+            margin-bottom: 16px;
+        }
+
+        .progress-bar {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, #00f2fe, #4facfe);
+            border-radius: 99px;
+            transition: width 0.25s ease;
+        }
+
+        .status {
+            font-size: 11px;
+            color: rgba(255,255,255,0.3);
+            letter-spacing: 1px;
+            min-height: 16px;
+        }
+
+        .version {
+            position: fixed;
+            bottom: 14px;
+            right: 16px;
+            font-size: 10px;
+            color: rgba(255,255,255,0.2);
+            letter-spacing: 0.5px;
         }
     </style>
 </head>
 <body>
+    <div class="orb"></div>
     <h1>VibeDroid</h1>
-    <p>Ready for Code</p>
-    <div class="loader"></div>
+    <p class="tagline">AI-Powered Dev Companion</p>
+    <div class="progress-wrap">
+        <div class="progress-bar" id="progress"></div>
+    </div>
+    <p class="status" id="status">Initializing…</p>
+    <p class="version">v2.0.0</p>
+
+    <script>
+        const bar    = document.getElementById('progress');
+        const status = document.getElementById('status');
+        const steps  = [
+            [10,  'Loading preferences…'],
+            [30,  'Starting AI capture…'],
+            [55,  'Launching window…'],
+            [75,  'Connecting IPC bridge…'],
+            [90,  'Almost ready…'],
+            [100, 'Ready!']
+        ];
+        let i = 0;
+        function tick() {
+            if (i >= steps.length) return;
+            const [pct, msg] = steps[i++];
+            bar.style.width  = pct + '%';
+            status.textContent = msg;
+            if (i < steps.length) setTimeout(tick, 350 + Math.random() * 200);
+        }
+        setTimeout(tick, 200);
+    </script>
 </body>
 </html>

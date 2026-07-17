@@ -7,14 +7,37 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div class="drag-region"></div>
+    <!-- Draggable title bar -->
+    <div class="title-bar drag-region">
+        <span class="app-title">VibeDroid</span>
+        <div class="title-bar-controls">
+            <button id="btn-pin" title="Toggle always-on-top" class="ctrl-btn pin-btn">📌</button>
+            <button id="btn-ai" title="Toggle AI capture" class="ctrl-btn ai-btn active">🤖</button>
+            <button id="btn-feed" title="Open AI feed" class="ctrl-btn feed-btn">📄</button>
+            <button id="btn-history" title="URL history" class="ctrl-btn hist-btn">🕑</button>
+            <button id="btn-minimize" title="Minimize" class="ctrl-btn win-btn">—</button>
+            <button id="btn-close" title="Close" class="ctrl-btn win-btn close-btn">✕</button>
+        </div>
+    </div>
+
+    <!-- History dropdown panel -->
+    <div id="history-panel" class="history-panel hidden">
+        <div class="history-header">
+            <span>Recent URLs</span>
+            <button id="btn-clear-history" class="clear-btn">Clear</button>
+        </div>
+        <ul id="history-list"></ul>
+    </div>
+
+    <!-- AI status badge -->
+    <div id="ai-status" class="ai-status-badge">AI ON</div>
+
     <div class="pixel-frame">
         <div class="camera-hole"></div>
         <div class="screen-content" id="screen">
             <div class="splash" id="splash-view">
                 <h1>VibeDroid</h1>
                 <p>Ready for Code</p>
-                
                 <div class="url-input-container">
                     <input type="text" id="dev-url" placeholder="e.g. http://localhost:5173" value="http://localhost:5173" />
                     <button id="connect-btn">Connect</button>
@@ -27,29 +50,95 @@
     <script>
         const { ipcRenderer } = require('electron');
         const splashView = document.getElementById('splash-view');
-        const appView = document.getElementById('app-view');
+        const appView    = document.getElementById('app-view');
         const connectBtn = document.getElementById('connect-btn');
-        const urlInput = document.getElementById('dev-url');
+        const urlInput   = document.getElementById('dev-url');
+        const aiStatus   = document.getElementById('ai-status');
+        const historyPanel = document.getElementById('history-panel');
+        const historyList  = document.getElementById('history-list');
 
+        let aiEnabled  = true;
+        let pinEnabled = true;
+        let urlHistory = [];
+
+        // ── Connect / navigate ───────────────────────────────────────────
         function loadApp(url) {
             if (!url.startsWith('http')) url = 'http://' + url;
             splashView.style.display = 'none';
-            appView.style.display = 'flex';
+            appView.style.display    = 'flex';
             appView.src = url;
+            ipcRenderer.send('url-navigate', url);
+            addHistory(url);
         }
 
-        // Handle URL from CLI arguments
-        ipcRenderer.on('load-url', (event, url) => {
-            loadApp(url);
+        function addHistory(url) {
+            urlHistory = [url, ...urlHistory.filter(u => u !== url)].slice(0, 20);
+            renderHistory();
+        }
+
+        function renderHistory() {
+            historyList.innerHTML = urlHistory
+                .map(u => `<li><a href="#" data-url="${u}">${u}</a></li>`)
+                .join('');
+            historyList.querySelectorAll('a').forEach(a => {
+                a.addEventListener('click', e => {
+                    e.preventDefault();
+                    urlInput.value = a.dataset.url;
+                    loadApp(a.dataset.url);
+                    historyPanel.classList.add('hidden');
+                });
+            });
+        }
+
+        connectBtn.addEventListener('click', () => loadApp(urlInput.value.trim()));
+        urlInput.addEventListener('keydown', e => { if (e.key === 'Enter') loadApp(urlInput.value.trim()); });
+
+        // ── Window controls ───────────────────────────────────────────────
+        document.getElementById('btn-minimize').addEventListener('click', () => {
+            ipcRenderer.send('minimize-window');
+        });
+        document.getElementById('btn-close').addEventListener('click', () => {
+            ipcRenderer.send('close-window');
         });
 
-        // Handle manual connection from splash screen
-        connectBtn.addEventListener('click', () => {
-            if (urlInput.value) loadApp(urlInput.value);
+        // ── Always-on-top toggle ─────────────────────────────────────────
+        const pinBtn = document.getElementById('btn-pin');
+        pinBtn.addEventListener('click', () => {
+            pinEnabled = !pinEnabled;
+            ipcRenderer.send('set-always-on-top', pinEnabled);
+            pinBtn.classList.toggle('active', pinEnabled);
+            pinBtn.title = pinEnabled ? 'Unpin window' : 'Pin on top';
         });
 
-        urlInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter' && urlInput.value) loadApp(urlInput.value);
+        // ── AI capture toggle ─────────────────────────────────────────────
+        const aiBtn = document.getElementById('btn-ai');
+        aiBtn.addEventListener('click', () => {
+            aiEnabled = !aiEnabled;
+            ipcRenderer.send('capture-toggle', aiEnabled);
+            aiBtn.classList.toggle('active', aiEnabled);
+            aiStatus.textContent = aiEnabled ? 'AI ON' : 'AI OFF';
+            aiStatus.classList.toggle('off', !aiEnabled);
+        });
+
+        // ── Open AI feed ──────────────────────────────────────────────────
+        document.getElementById('btn-feed').addEventListener('click', () => {
+            ipcRenderer.send('open-feed');
+        });
+
+        // ── History panel toggle ──────────────────────────────────────────
+        document.getElementById('btn-history').addEventListener('click', () => {
+            historyPanel.classList.toggle('hidden');
+        });
+        document.getElementById('btn-clear-history').addEventListener('click', () => {
+            urlHistory = [];
+            renderHistory();
+        });
+
+        // Close history panel on outside click
+        document.addEventListener('click', e => {
+            if (!historyPanel.contains(e.target) && e.target.id !== 'btn-history') {
+                historyPanel.classList.add('hidden');
+            }
         });
     </script>
 </body>
